@@ -1,0 +1,281 @@
+services:
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - spring-microservice
+
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: grafana
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
+    networks:
+      - spring-microservice
+
+  account_db:
+    container_name: account_db
+    build:
+      context: ./databases/account_db
+      args:
+        - MYSQL_DATABASE=account_db
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3307:3306"
+    volumes:
+      - ./databases/account_db/init_account.sql:/docker-entrypoint-initdb.d/init_account.sql
+      - ./databases/account_db/mysql-data:/var/lib/mysql
+    networks:
+      - spring-microservice
+
+  department_db:
+    container_name: department_db
+    build:
+      context: ./databases/department_db
+      args:
+        - MYSQL_DATABASE=department_db
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3308:3306"
+    volumes:
+      - ./databases/department_db/init_department.sql:/docker-entrypoint-initdb.d/init_department.sql
+      - ./databases/department_db/mysql-data:/var/lib/mysql
+    networks:
+      - spring-microservice
+
+  user_db:
+    container_name: user_db
+    build:
+      context: ./databases/user_db
+      args:
+        - MYSQL_DATABASE=user_db
+        - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3309:3306"
+    volumes:
+      - ./databases/user_db/init_user.sql:/docker-entrypoint-initdb.d/init_user.sql
+      - ./databases/user_db/mysql-data:/var/lib/mysql
+    networks:
+      - spring-microservice
+
+  eureka-server:
+    container_name: eureka-server
+    hostname: eureka-server
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    networks:
+      - spring-microservice
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+
+  api-gateway:
+    container_name: api-gateway
+    hostname: api-gateway
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8762:8762"
+    depends_on:
+      - eureka-server
+    networks:
+      - spring-microservice
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  auth-service:
+    container_name: auth-service
+    hostname: auth-service
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    depends_on:
+      - user_db
+    networks:
+      - spring-microservice
+    environment:
+      DB_HOST: user_db
+      SPRING_DATASOURCE_URL: jdbc:mysql://user_db:3306/user_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimeZone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_APPLICATION_NAME: auth-service
+
+  account-service:
+    container_name: account-service
+    hostname: account-service
+    build:
+      context: ./account-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      - account_db
+    volumes:
+      - ./logs:/app/logs
+    environment:
+      DB_HOST: account_db
+      SPRING_DATASOURCE_URL: jdbc:mysql://account_db:3306/account_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimeZone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_APPLICATION_NAME: account-service
+    networks:
+      - spring-microservice
+
+  department-service-1:
+    container_name: department-service-1
+    hostname: department-service-1
+    build:
+      context: ./department-service
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      - department_db
+      - eureka-server
+    environment:
+      DB_HOST: department_db
+      SPRING_DATASOURCE_URL: jdbc:mysql://department_db:3306/department_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimeZone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_APPLICATION_NAME: department-service
+    networks:
+      - spring-microservice
+
+  department-service-2:
+    container_name: department-service-2
+    hostname: department-service-2
+    build:
+      context: ./department-service
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8080"
+    depends_on:
+      - department_db
+      - eureka-server
+    environment:
+      DB_HOST: department_db
+      SPRING_DATASOURCE_URL: jdbc:mysql://department_db:3306/department_db?createDatabaseIfNotExist=true&characterEncoding=UTF-8&serverTimeZone=UTC&allowPublicKeyRetrieval=true&useSSL=false
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: root
+      SPRING_APPLICATION_NAME: department-service
+    networks:
+      - spring-microservice
+
+  admin-service:
+    build:
+      context: ./admin-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka-server
+      - department-service-1
+      - department-service-2
+    networks:
+      - spring-microservice
+
+  config-service:
+    container_name: config-service
+    hostname: config-service
+    build:
+      context: ./config-service
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8763:8763"
+    depends_on:
+      - eureka-server
+    networks:
+      - spring-microservice
+    environment:
+      EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE: http://eureka-server:8761/eureka/
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - spring-microservice
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - spring-microservice
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.17.0
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - xpack.security.enabled=false  # Disable security for development
+      - "ES_JAVA_OPTS=-Xms1g -Xmx1g"
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    volumes:
+      - ./elk-stack/elastic-data:/usr/share/elasticsearch/data
+    ports:
+      - "9200:9200"
+    networks:
+      - spring-microservice
+
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.10.0
+    container_name: logstash
+    restart: unless-stopped
+    ports:
+      - "5044:5044"
+      - "9600:9600"
+    volumes:
+      - ./elk-stack/logstash/logstash.conf:/usr/share/logstash/pipeline/logstash.conf:ro
+      - ./logs:/app/logs
+    networks:
+      - spring-microservice
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.4.3
+    container_name: kibana
+    restart: unless-stopped
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    depends_on:
+      - elasticsearch
+    networks:
+      - spring-microservice
+
+networks:
+  spring-microservice:
+    driver: bridge
