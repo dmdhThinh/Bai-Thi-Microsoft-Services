@@ -1,0 +1,8 @@
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\ApiGatewayApplication.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\config\ApplicationConfig.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\config\GatewayConfig.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\exception\HandleException.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\exception\ValidationException.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\filter\AuthenticationFilter.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\response\AuthenticationResponse.java
+C:\Users\thinh\Desktop\VTI\microservices-project-dtn2505\api-gateway\src\main\java\vti\dtn\api_gateway\response\VerifyTokenResponse.java

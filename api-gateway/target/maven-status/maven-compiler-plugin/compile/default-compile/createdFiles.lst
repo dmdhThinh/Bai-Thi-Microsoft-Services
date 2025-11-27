@@ -1,0 +1,10 @@
+vti\dtn\api_gateway\config\GatewayConfig.class
+vti\dtn\api_gateway\response\AuthenticationResponse.class
+vti\dtn\api_gateway\filter\AuthenticationFilter.class
+vti\dtn\api_gateway\exception\HandleException.class
+vti\dtn\api_gateway\ApiGatewayApplication.class
+vti\dtn\api_gateway\response\VerifyTokenResponse$VerifyTokenResponseBuilder.class
+vti\dtn\api_gateway\exception\ValidationException.class
+vti\dtn\api_gateway\filter\AuthenticationFilter$1.class
+vti\dtn\api_gateway\config\ApplicationConfig.class
+vti\dtn\api_gateway\response\VerifyTokenResponse.class
